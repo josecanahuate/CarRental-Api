@@ -57,7 +57,7 @@ class ReservationsController extends Controller
     {
         try {
             $reservation = Reservation::findOrFail($id);
-            $reservation->client_name = $request->client_name;
+            $reservation->client_name = $request->client_name; 
             $reservation->dni = $request->dni;
             $reservation->phone = $request->phone;
             $reservation->email = $request->email;
