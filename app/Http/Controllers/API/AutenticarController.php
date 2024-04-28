@@ -9,35 +9,55 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AutenticarController extends Controller
-{
-    public function register(Request $request){
+{   
+    public function register(Request $request)
+    {
+        // Validar la solicitud
+        $request->validate([
+            'name' => 'required',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:5',
+        ]);
+    
         try {
-        $user = new User();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = bcrypt($request->password);
-        $user->save();
+            // Crear un nuevo usuario usando el método create
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => bcrypt($request->password),
+            ]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'User created successfully',
-            'user' => $user
-        ], 201);
-    } catch (\Exception $e) {
-        return response()->json(['message' => 'Error creating user', 'error' => $e->getMessage()], 500);
+            // Agregar roles al usuario
+            $user->roles()->attach($request->roles);
+    
+            // Retornar la respuesta con el usuario creado
+            return response()->json([
+                'status' => true,
+                'message' => 'User created successfully',
+                'user' => $user
+            ], 201);
+        } catch (\Exception $e) {
+            // Manejar errores
+            return response()->json(['message' => 'Error creating user', 'error' => $e->getMessage()], 500);
+        }
     }
-    }
+    
 
     public function login(Request $request){
         
+        // Validar el login
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
         //Crear Las Apitokens que se relacionaran con el usuario
-        //$user = User::with('roles')->where('email', $request->email)->first();
-        $user = User::where('email', $request->email)->first();
+        $user = User::with('roles')->where('email', $request->email)->first();
 
         //Validar que el usuario exista y que la contraseña sea correcta
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Incorrect Credentials!!'],
+                'email' => ['The provided credentials are incorrect.'],
             ]);
         }
         
@@ -52,7 +72,7 @@ class AutenticarController extends Controller
         ],200);
     }
 
-
+    //Logout
     public function logout(Request $request){
     // Eliminando token que fue usado para hacer autenticarse
     $request->user()->currentAccessToken()->delete();
